@@ -39,14 +39,14 @@ If key-based login is not configured, add your controller computer's public key 
 
 ## Single Distributed Run
 
-The distributed runner auto-uploads these helper files to the Windows repo before each run:
+Keep the two repositories synchronized with git before running the distributed pipeline. The Windows checkout must contain:
 
 ```text
 scripts/windows_remote_run.ps1
 scripts/remote_soapy_preflight.py
 ```
 
-This means the Windows checkout does not need to be manually updated just to receive helper-script changes, as long as the base repository directory exists.
+For example, after committing/pushing on the controller machine, run `git pull` on Windows.
 
 First create a frame locally on the RX/controller computer:
 

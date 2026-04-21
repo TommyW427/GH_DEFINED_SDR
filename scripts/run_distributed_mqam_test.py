@@ -209,25 +209,6 @@ def windows_simple_command(command: str) -> str:
     return f"powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand {encoded}"
 
 
-def ensure_remote_windows_helpers(args: argparse.Namespace, remote_host: str, remote_capture: str) -> None:
-    if args.remote_os != "windows":
-        return
-    remote_scripts = remote_path(args.remote_os, args.remote_repo, "scripts")
-    mkdir_cmd = windows_simple_command(
-        f"New-Item -ItemType Directory -Force -Path {ps_quote(remote_scripts)} | Out-Null; "
-        f"New-Item -ItemType Directory -Force -Path {ps_quote(normalize_remote_path(remote_capture, args.remote_os))} | Out-Null"
-    )
-    run_checked([*ssh_base(args, remote_host), mkdir_cmd], cwd=REPO_ROOT)
-
-    helper_files = [
-        SCRIPTS_DIR / "windows_remote_run.ps1",
-        SCRIPTS_DIR / "remote_soapy_preflight.py",
-    ]
-    for helper in helper_files:
-        remote_helper = remote_path(args.remote_os, remote_scripts, helper.name)
-        run_checked([*scp_base(args), str(helper), scp_remote_spec(remote_host, remote_helper, args.remote_os)], cwd=REPO_ROOT)
-
-
 def remote_cleanup_command(args: argparse.Namespace, remote_capture: str) -> str:
     remote_capture = normalize_remote_path(remote_capture, args.remote_os)
     if args.remote_os == "windows":
@@ -455,10 +436,6 @@ def main() -> int:
         scp_frame_cmd = [*scp_base(args), str(tx_frame_copy), scp_remote_spec(remote_host, remote_tx_frame, args.remote_os)]
 
         if args.dry_run:
-            if args.remote_os == "windows":
-                print("Remote helper bootstrap:")
-                print("  creates remote scripts/capture directories and uploads windows_remote_run.ps1 + remote_soapy_preflight.py")
-                print()
             print("Remote setup command:")
             print(shlex.join([*ssh_base(args, remote_host), remote_mkdir]))
             if args.remote_sdr_preflight:
@@ -481,7 +458,6 @@ def main() -> int:
             print(shlex.join(ssh_tx_cmd))
             return 0
 
-        ensure_remote_windows_helpers(args, remote_host, remote_capture)
         run_checked([*ssh_base(args, remote_host), remote_mkdir], cwd=REPO_ROOT)
         run_remote_preflight(args, remote_host, remote_capture, args.tx_device_args, "TX")
         run_checked(scp_frame_cmd, cwd=REPO_ROOT)
@@ -535,10 +511,6 @@ def main() -> int:
         scp_raw = [*scp_base(args), scp_remote_spec(remote_host, remote_raw, args.remote_os), str(local_raw)]
 
         if args.dry_run:
-            if args.remote_os == "windows":
-                print("Remote helper bootstrap:")
-                print("  creates remote scripts/capture directories and uploads windows_remote_run.ps1 + remote_soapy_preflight.py")
-                print()
             print("Remote RX command:")
             print(shlex.join(ssh_rx_cmd))
             if args.remote_sdr_preflight:
@@ -560,7 +532,6 @@ def main() -> int:
             print(shlex.join(scp_raw))
             return 0
 
-        ensure_remote_windows_helpers(args, remote_host, remote_capture)
         run_remote_preflight(args, remote_host, remote_capture, args.rx_device_args, "RX")
         receiver = subprocess.Popen(ssh_rx_cmd, cwd=REPO_ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         print(f"Remote receiver SSH PID: {receiver.pid}")
