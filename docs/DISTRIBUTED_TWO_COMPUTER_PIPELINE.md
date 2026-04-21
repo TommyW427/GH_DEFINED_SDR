@@ -37,6 +37,15 @@ ssh tpdub@windows-hostname "powershell.exe -NoProfile -Command \"(& conda shell.
 
 If key-based login is not configured, add your controller computer's public key to the Windows user's `authorized_keys` file.
 
+Or run the setup helper from the Mac/controller. It will prompt for the Windows password once, install your public key, and verify passwordless SSH:
+
+```bash
+python scripts/setup_windows_ssh_key.py \
+  --host tpdub@10.41.1.254
+```
+
+If you use a non-default SSH port, add `--ssh-port <port>`.
+
 ## Single Distributed Run
 
 Keep the two repositories synchronized with git before running the distributed pipeline.
@@ -142,8 +151,21 @@ The summary CSV includes:
 - `total_attempts`: total captures attempted for that pilot count.
 - `attempts_per_selected_run_mean`: average number of attempts needed for each accepted repetition.
 - `attempts_per_selected_run_max`: worst-case attempts needed for an accepted repetition.
+- `sync_source`, `phase`, `frame_start`, `pilot_start`, `payload_cycle_offset`, and `frame_lock_pilots_checked`: synchronization diagnostics for the accepted runs.
 
 The detailed CSV includes one row per selected repetition. The JSON includes both selected `runs` and all attempted `attempts`, so bad-lock attempts remain auditable.
+
+## Distance And Lock Quality
+
+Moving the radios farther apart can help if close-range operation is saturating the RX front end, but after that point it usually hurts synchronization. Lock score is a correlation/alignment metric, so it is sensitive to SNR, CFO/phase drift, timing jitter, multipath, and AGC settling. You can see which failure mode dominates by comparing these fields in the detailed CSV:
+
+- `validation_mean_snr_db`: if this drops with distance, the receiver is simply becoming too weak/noisy for reliable preamble/pilot correlation.
+- `validation_mean_pilot_ber`: if this is high when lock is low, the pilots are not being aligned/equalized reliably.
+- `sync_source`: if it flips between `sync_tail`, `preamble`, and `pilot`, the synchronizer is not consistently finding the same frame boundary.
+- `phase`: if accepted runs use many different sample phases, timing/phase selection is unstable.
+- `frame_start` and `pilot_start`: large jumps between attempts indicate false correlation peaks rather than a stable capture.
+
+For distance sweeps, keep TX/RX gain fixed and record physical distance. The useful range is typically the middle region: far enough to avoid overload, but close enough that the preamble/tail still gives a strong correlation peak.
 
 Each run capture contains:
 

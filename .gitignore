@@ -9,6 +9,12 @@ __pycache__/
 venv/
 env/
 
+# Local SSH keys / credentials
+id_*
+*.pem
+file.txt
+file.txt.pub
+
 # Large/generated SDR artifacts
 captures/
 frames/
