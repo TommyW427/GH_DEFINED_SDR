@@ -30,5 +30,7 @@ export PYTHONPATH="$PWD/src:$PWD/scripts"
 - `generate_defined_paper_frame.py`: Creates paper-style `T=31` frames.
 - `run_defined_pilot_sweep.py`: Runs live SDR pilot-count sweeps.
 - `run_mqam_headless_test.py`: Runs one live SDR transmit/receive/validate test.
+- `run_distributed_mqam_test.py`: Runs one two-computer TX/RX test by controlling the remote RX computer over SSH.
+- `run_distributed_pilot_sweep.py`: Runs two-computer pilot sweeps and aggregates BER/SER/SNR/lock-score results.
 - `Send_Signal_MQAM_Headless.py`: Headless GNU Radio transmitter.
 - `Receive_Signal_MQAM_Headless.py`: Headless GNU Radio receiver.

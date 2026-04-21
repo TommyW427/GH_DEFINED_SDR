@@ -117,8 +117,16 @@ The SDR scripts are included for completeness:
 - `scripts/Receive_Signal_MQAM_Headless.py`
 - `scripts/run_mqam_headless_test.py`
 - `scripts/run_defined_pilot_sweep.py`
+- `scripts/run_distributed_mqam_test.py`
+- `scripts/run_distributed_pilot_sweep.py`
 
 They require GNU Radio, SoapySDR, and PlutoSDR drivers. The plotting and offline AWGN pipelines do not require SDR hardware.
+
+For two-computer tests where one machine controls TX and another machine hosts RX, see:
+
+```text
+docs/DISTRIBUTED_TWO_COMPUTER_PIPELINE.md
+```
 
 ## Known Environment Notes
 
