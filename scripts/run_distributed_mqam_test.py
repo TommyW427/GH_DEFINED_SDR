@@ -149,12 +149,45 @@ def ps_quote(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
-def win_quote(value: str) -> str:
-    return '"' + value.replace('"', r'\"') + '"'
-
-
-def base64_encode(value: str) -> str:
-    return base64.b64encode(value.encode("utf-8")).decode("ascii")
+def windows_conda_bootstrap(conda_exe: str, conda_env: str) -> list[str]:
+    candidates = [
+        "$env:USERPROFILE/radioconda/condabin/conda.bat",
+        "$env:USERPROFILE/radioconda/Scripts/conda.exe",
+        "$env:USERPROFILE/miniconda3/Scripts/conda.exe",
+        "$env:USERPROFILE/anaconda3/Scripts/conda.exe",
+        "$env:USERPROFILE/miniforge3/Scripts/conda.exe",
+        "$env:USERPROFILE/mambaforge/Scripts/conda.exe",
+        "C:/radioconda/condabin/conda.bat",
+        "C:/radioconda/Scripts/conda.exe",
+        "C:/ProgramData/miniconda3/Scripts/conda.exe",
+        "C:/ProgramData/anaconda3/Scripts/conda.exe",
+        "C:/ProgramData/miniforge3/Scripts/conda.exe",
+        "C:/tools/miniconda3/Scripts/conda.exe",
+    ]
+    candidate_array = "@(" + ", ".join(ps_quote(candidate) for candidate in candidates) + ")"
+    return [
+        "$ProgressPreference = 'SilentlyContinue'",
+        f"$CondaExe = {ps_quote(conda_exe)}",
+        "if (-not (Get-Command $CondaExe -ErrorAction SilentlyContinue)) {",
+        f"  foreach ($Candidate in {candidate_array}) {{",
+        "    $Expanded = [Environment]::ExpandEnvironmentVariables($Candidate)",
+        "    if (Test-Path -LiteralPath $Expanded) { $CondaExe = $Expanded; break }",
+        "  }",
+        "}",
+        "if (-not (Test-Path -LiteralPath $CondaExe) -and -not (Get-Command $CondaExe -ErrorAction SilentlyContinue)) {",
+        "  throw \"Could not find conda. Pass --remote-conda-exe with the full Windows path to conda.exe or conda.bat.\"",
+        "}",
+        "if ($CondaExe.ToLower().EndsWith('.bat')) {",
+        "  $CondaHook = cmd.exe /d /c \"`\"$CondaExe`\" shell.powershell hook\"",
+        "} else {",
+        "  $CondaHook = & $CondaExe shell.powershell hook",
+        "}",
+        "$CondaHook | Out-String | Invoke-Expression",
+        f"conda activate {ps_quote(conda_env)}",
+        "if ($LASTEXITCODE -ne 0) { throw \"Failed to activate remote conda environment.\" }",
+        "python -c \"import gnuradio\"",
+        "if ($LASTEXITCODE -ne 0) { throw \"Remote conda environment does not provide gnuradio.\" }",
+    ]
 
 
 def remote_command(args: argparse.Namespace, argv: list[str], remote_cwd: str, remote_capture: str) -> str:
@@ -162,31 +195,21 @@ def remote_command(args: argparse.Namespace, argv: list[str], remote_cwd: str, r
     remote_capture = normalize_remote_path(remote_capture, args.remote_os)
     if args.remote_os == "windows":
         pythonpath = f"{remote_path(args.remote_os, args.remote_repo, 'src')};{remote_path(args.remote_os, args.remote_repo, 'scripts')}"
-        argv_json = json.dumps(argv)
-        argv_json_b64 = base64_encode(argv_json)
-        helper = remote_path(args.remote_os, args.remote_repo, "scripts", "windows_remote_run.ps1")
-        return " ".join(
+        ps_parts = [
+            "$ProgressPreference = 'SilentlyContinue'",
+            f"New-Item -ItemType Directory -Force -Path {ps_quote(remote_capture)} | Out-Null",
+            f"Set-Location {ps_quote(remote_cwd)}",
+        ]
+        if args.remote_conda_env:
+            ps_parts.extend(windows_conda_bootstrap(args.remote_conda_exe, args.remote_conda_env))
+        ps_parts.extend(
             [
-                "powershell.exe",
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                win_quote(helper),
-                "-Repo",
-                win_quote(remote_cwd),
-                "-Capture",
-                win_quote(remote_capture),
-                "-CondaExe",
-                win_quote(args.remote_conda_exe),
-                "-CondaEnv",
-                win_quote(args.remote_conda_env or ""),
-                "-PythonPath",
-                win_quote(pythonpath),
-                "-ArgvJsonBase64",
-                win_quote(argv_json_b64),
+                f"$env:PYTHONPATH = {ps_quote(pythonpath)}",
+                "& " + " ".join(ps_quote(item) for item in argv),
             ]
         )
+        encoded = base64.b64encode("; ".join(ps_parts).encode("utf-16le")).decode("ascii")
+        return f"powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand {encoded}"
 
     pythonpath = f"{remote_path(args.remote_os, args.remote_repo, 'src')}:{remote_path(args.remote_os, args.remote_repo, 'scripts')}"
     parts = [
@@ -258,14 +281,38 @@ def write_stderr(text: str | None) -> None:
 
 
 def remote_soapy_preflight_argv(args: argparse.Namespace, device_args: str, direction: str) -> list[str]:
-    return [
-        args.remote_python,
-        remote_path(args.remote_os, args.remote_repo, "scripts", "remote_soapy_preflight.py"),
-        "--device-args",
-        device_args,
-        "--direction",
-        direction,
-    ]
+    code = "\n".join(
+        [
+            "import json",
+            "import sys",
+            "import SoapySDR",
+            "print('SoapySDR API:', SoapySDR.getAPIVersion())",
+            "try:",
+            "    print('SoapySDR root:', SoapySDR.getRootPath())",
+            "except Exception as exc:",
+            "    print('SoapySDR root unavailable:', exc)",
+            "try:",
+            "    print('SoapySDR search paths:', SoapySDR.listSearchPaths())",
+            "except Exception as exc:",
+            "    print('SoapySDR search paths unavailable:', exc)",
+            "try:",
+            "    print('SoapySDR modules:', SoapySDR.listModules())",
+            "except Exception as exc:",
+            "    print('SoapySDR modules unavailable:', exc)",
+            "devices = SoapySDR.Device.enumerate()",
+            "print('SoapySDR devices:', json.dumps([dict(d) for d in devices], indent=2))",
+            f"device_args = {device_args!r}",
+            "try:",
+            "    dev = SoapySDR.Device(device_args)",
+            f"    print('Remote {direction} device open OK:', device_args)",
+            "    print('Remote hardware:', dev.getHardwareKey())",
+            "except Exception as exc:",
+            f"    print('Remote {direction} device open FAILED:', device_args)",
+            "    print(type(exc).__name__ + ':', exc)",
+            "    sys.exit(2)",
+        ]
+    )
+    return [args.remote_python, "-c", code]
 
 
 def run_remote_preflight(

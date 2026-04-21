@@ -39,14 +39,7 @@ If key-based login is not configured, add your controller computer's public key 
 
 ## Single Distributed Run
 
-Keep the two repositories synchronized with git before running the distributed pipeline. The Windows checkout must contain:
-
-```text
-scripts/windows_remote_run.ps1
-scripts/remote_soapy_preflight.py
-```
-
-For example, after committing/pushing on the controller machine, run `git pull` on Windows.
+Keep the two repositories synchronized with git before running the distributed pipeline.
 
 First create a frame locally on the RX/controller computer:
 
@@ -242,13 +235,6 @@ The remote launcher also verifies the environment before transmitting:
 
 ```powershell
 python -c "import gnuradio"
-```
-
-The Windows SSH command intentionally calls `scripts/windows_remote_run.ps1` instead of embedding a large encoded command. If SSH exits with code `255`, first verify that this helper exists on the Windows host:
-
-```powershell
-Test-Path C:/Users/tpdub/Downloads/Wireless/GH_DEFINED_SDR/scripts/windows_remote_run.ps1
-Test-Path C:/Users/tpdub/Downloads/Wireless/GH_DEFINED_SDR/scripts/remote_soapy_preflight.py
 ```
 
 ## Practical Timing
