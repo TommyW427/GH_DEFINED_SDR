@@ -68,15 +68,19 @@ if ($CondaEnv) {
 
 $env:PYTHONPATH = $PythonPath
 $argvJson = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($ArgvJsonBase64))
-$remoteArgv = @($argvJson | ConvertFrom-Json)
+$decodedArgv = $argvJson | ConvertFrom-Json
+$remoteArgv = @()
+foreach ($item in $decodedArgv) {
+    $remoteArgv += [string]$item
+}
 if ($remoteArgv.Count -lt 1) {
     throw "Remote argv is empty."
 }
 
-$program = [string]$remoteArgv[0]
+$program = [string]($remoteArgv[0])
 $programArgs = @()
 if ($remoteArgv.Count -gt 1) {
-    $programArgs = @($remoteArgv[1..($remoteArgv.Count - 1)] | ForEach-Object { [string]$_ })
+    $programArgs = @($remoteArgv[1..($remoteArgv.Count - 1)] | ForEach-Object { [string]($_) })
 }
 
 & $program @programArgs
