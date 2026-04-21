@@ -137,3 +137,4 @@ The clean repository intentionally excludes:
 - `__pycache__`, `.DS_Store`, and profiling artifacts.
 
 Those files are not needed to reproduce the included plots or understand the experiment pipeline.
+# GH_DEFINED_SDR
