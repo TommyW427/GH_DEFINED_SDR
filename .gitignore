@@ -1,0 +1,31 @@
+__pycache__/
+*.py[cod]
+*.profraw
+.DS_Store
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Large/generated SDR artifacts
+captures/
+frames/
+payloads/
+payloads_*/
+full_frames/
+bit_tests/
+*.bin
+*.npz
+
+# Local generated plots outside curated results/
+*.png
+*.pdf
+!docs/*.pdf
+!results/**/*.png
+!results/**/*.pdf
+
+# Local experiment outputs outside curated results/
+experiments/
+paper_results/

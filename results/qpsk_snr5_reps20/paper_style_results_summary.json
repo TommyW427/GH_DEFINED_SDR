@@ -1,0 +1,205 @@
+{
+  "modulation": "QPSK",
+  "target_snr_db": 5.0,
+  "repetitions": 20,
+  "pilot_symbols": [
+    1,
+    2,
+    3,
+    4,
+    6,
+    8
+  ],
+  "context_pilot": 2,
+  "selected_captures": [
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_152018_qpsk_paper_k04",
+      "pilot_symbols": 4,
+      "lock_score": 0.9967462420463562,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": null
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_152018_qpsk_paper_k08",
+      "pilot_symbols": 8,
+      "lock_score": 0.9982597231864929,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": null
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_160902_qpsk_paper_k03_r02",
+      "pilot_symbols": 3,
+      "lock_score": 0.997596025466919,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": null
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_170605_qpsk_paper_k03_r02",
+      "pilot_symbols": 3,
+      "lock_score": 0.9992420673370361,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": null
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_170605_qpsk_paper_k04_r02",
+      "pilot_symbols": 4,
+      "lock_score": 0.9976217746734619,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": null
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_170605_qpsk_paper_k06_r01",
+      "pilot_symbols": 6,
+      "lock_score": 0.9977428317070007,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": null
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_170605_qpsk_paper_k06_r03",
+      "pilot_symbols": 6,
+      "lock_score": 0.9987426400184631,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": null
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_170605_qpsk_paper_k06_r05",
+      "pilot_symbols": 6,
+      "lock_score": 0.97782963514328,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": null
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_170605_qpsk_paper_k08_r01",
+      "pilot_symbols": 8,
+      "lock_score": 0.997959554195404,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": null
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_171848_qpsk_paper_k01_r01",
+      "pilot_symbols": 1,
+      "lock_score": 0.994177520275116,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": null
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_171848_qpsk_paper_k01_r02",
+      "pilot_symbols": 1,
+      "lock_score": 0.9943510293960571,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": null
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_171848_qpsk_paper_k01_r03",
+      "pilot_symbols": 1,
+      "lock_score": 0.9947712421417236,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": null
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_172919_qpsk_paper_k02_r03",
+      "pilot_symbols": 2,
+      "lock_score": 0.9966460466384888,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": 27.171772186098732
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_172919_qpsk_paper_k02_r04",
+      "pilot_symbols": 2,
+      "lock_score": 0.9984334707260132,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": 39.07896936224386
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_172919_qpsk_paper_k03_r03",
+      "pilot_symbols": 3,
+      "lock_score": 0.9962087869644165,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": 23.759633240390077
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_172919_qpsk_paper_k06_r03",
+      "pilot_symbols": 6,
+      "lock_score": 0.99565589427948,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": 22.18852551409771
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_174239_qpsk_paper_k01_r01",
+      "pilot_symbols": 1,
+      "lock_score": 0.9982544779777527,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": 99.0
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_174239_qpsk_paper_k02_r01",
+      "pilot_symbols": 2,
+      "lock_score": 0.9974583387374878,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": 28.014596618424342
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_174239_qpsk_paper_k02_r02",
+      "pilot_symbols": 2,
+      "lock_score": 0.9981152415275574,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": 30.663874022982164
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_174239_qpsk_paper_k03_r01",
+      "pilot_symbols": 3,
+      "lock_score": 0.9978721141815186,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": 33.44831022554632
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_174239_qpsk_paper_k04_r01",
+      "pilot_symbols": 4,
+      "lock_score": 0.9964675307273865,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": 33.02048013060641
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_174239_qpsk_paper_k04_r02",
+      "pilot_symbols": 4,
+      "lock_score": 0.9963135123252869,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": 27.53547397356028
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_174239_qpsk_paper_k08_r01",
+      "pilot_symbols": 8,
+      "lock_score": 0.9846433997154236,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": 16.7135485920874
+    },
+    {
+      "capture_dir": "captures/defined_pilot_sweep_20260417_174239_qpsk_paper_k08_r02",
+      "pilot_symbols": 8,
+      "lock_score": 0.9846430420875549,
+      "clean_validation_ber": 0.0,
+      "clean_validation_mean_snr_db": 19.390181385824036
+    }
+  ],
+  "tables": {
+    "clean": "paper_results/qpsk_snr5_reps20_v2/clean.csv",
+    "noisy_summary": "paper_results/qpsk_snr5_reps20_v2/noisy_summary.csv",
+    "noisy_steps": "paper_results/qpsk_snr5_reps20_v2/noisy_steps.csv",
+    "snr": "paper_results/qpsk_snr5_reps20_v2/snr.csv",
+    "aggregate_by_pilot": "paper_results/qpsk_snr5_reps20_v2/aggregate_by_pilot.csv",
+    "aggregate_by_context": "paper_results/qpsk_snr5_reps20_v2/aggregate_by_context.csv"
+  },
+  "figures": [
+    "paper_results/qpsk_snr5_reps20_v2/ser_vs_pilots.png",
+    "paper_results/qpsk_snr5_reps20_v2/ser_vs_pilots.pdf",
+    "paper_results/qpsk_snr5_reps20_v2/ber_vs_pilots.png",
+    "paper_results/qpsk_snr5_reps20_v2/ber_vs_pilots.pdf",
+    "paper_results/qpsk_snr5_reps20_v2/ser_vs_context_k02.png",
+    "paper_results/qpsk_snr5_reps20_v2/ser_vs_context_k02.pdf"
+  ],
+  "notes": [
+    "Offline AWGN is added after synchronization to aligned SDR symbols.",
+    "MMSE and ICL curves in context plots are fixed-context horizontal baselines.",
+    "MMSE-DF and DEFINED-DF curves use detected symbols as decision-feedback context."
+  ]
+}

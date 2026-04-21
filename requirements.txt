@@ -1,0 +1,8 @@
+numpy
+pandas
+matplotlib
+torch
+
+# Optional, only needed for live SDR collection:
+# gnuradio
+# SoapySDR
