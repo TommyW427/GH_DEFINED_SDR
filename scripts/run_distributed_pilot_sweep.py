@@ -2,9 +2,9 @@
 """
 Run a paper-style pilot sweep across two computers.
 
-Launch this on the TX/controller computer. Each run starts the RX flowgraph on
-the remote computer over SSH, transmits locally, copies the capture back, and
-aggregates validation/detector metrics.
+Launch this on the RX/controller computer by default. Each run starts the local
+RX flowgraph, transmits from the remote TX computer over SSH, and aggregates
+validation/detector metrics.
 """
 
 from __future__ import annotations
@@ -35,9 +35,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--total-symbols", type=int, default=31)
     parser.add_argument("--preamble-symbols", type=int, default=6000)
     parser.add_argument("--sync-tail-symbols", type=int, default=64)
-    parser.add_argument("--remote-rx-host", required=True)
-    parser.add_argument("--remote-repo", default=str(REPO_ROOT))
-    parser.add_argument("--remote-python", default=sys.executable)
+    parser.add_argument("--remote-host", default=None)
+    parser.add_argument("--remote-tx-host", default=None)
+    parser.add_argument("--remote-rx-host", default=None)
+    parser.add_argument("--remote-role", choices=["tx", "rx"], default="tx")
+    parser.add_argument("--remote-os", choices=["windows", "posix"], default="windows")
+    parser.add_argument("--remote-repo", default="C:/Users/tpdub/Downloads/Wireless/GH_DEFINED_SDR")
+    parser.add_argument("--remote-python", default="python")
+    parser.add_argument("--remote-conda-env", default="gnuradio")
+    parser.add_argument("--remote-conda-exe", default="conda")
+    parser.add_argument("--remote-sdr-preflight", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--ssh-port", type=int, default=None)
     parser.add_argument("--ssh-option", action="append", default=[])
@@ -55,12 +62,30 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--costas-bw", type=float, default=0.001)
     parser.add_argument("--tx-gain", type=float, default=50.0)
     parser.add_argument("--tx-scale", type=float, default=0.2)
-    parser.add_argument("--detectors", nargs="+", default=["mmse", "mmse_df"])
+    parser.add_argument("--detectors", nargs="+", default=["mmse", "mmse_df", "icl", "defined"])
     parser.add_argument("--repetitions", type=int, default=1)
     parser.add_argument("--icl-checkpoint", default=None)
     parser.add_argument("--defined-checkpoint", default=None)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--lock-threshold", type=float, default=0.95)
+    parser.add_argument(
+        "--retry-until-lock",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Repeat each logical repetition until lock_score reaches --lock-threshold.",
+    )
+    parser.add_argument(
+        "--max-lock-attempts",
+        type=int,
+        default=5,
+        help="Maximum attempts per logical repetition when --retry-until-lock is enabled. Use 0 for unlimited.",
+    )
+    parser.add_argument(
+        "--retry-delay",
+        type=float,
+        default=1.0,
+        help="Delay between bad-lock retry attempts.",
+    )
     parser.add_argument("--exclude-bad-lock", action="store_true")
     parser.add_argument("--keep-remote-capture", action="store_true")
     return parser.parse_args()
@@ -89,8 +114,20 @@ def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def resolve_remote_host(args: argparse.Namespace) -> str:
+    host = args.remote_host
+    if args.remote_role == "tx":
+        host = host or args.remote_tx_host
+    else:
+        host = host or args.remote_rx_host
+    if not host:
+        raise ValueError("Provide --remote-host, --remote-tx-host, or --remote-rx-host.")
+    return host
+
+
 def main() -> int:
     args = parse_args()
+    remote_host = resolve_remote_host(args)
     if args.modulation in {"16QAM", "64QAM"} and args.carrier_recovery == "costas":
         raise ValueError(f"--carrier-recovery costas is not supported for {args.modulation}. Use --carrier-recovery none.")
 
@@ -118,107 +155,168 @@ def main() -> int:
         )
 
         repetition_rows = []
+        attempt_rows = []
         for repetition in range(args.repetitions):
-            run_tag = f"{sweep_tag}_{modulation_tag}_k{pilot_symbols:02d}_r{repetition + 1:02d}"
-            cmd = [
-                args.python,
-                str(SCRIPTS_DIR / "run_distributed_mqam_test.py"),
-                "--python",
-                args.python,
-                "--remote-python",
-                args.remote_python,
-                "--modulation",
-                args.modulation,
-                "--tx-frame",
-                str(frame_path),
-                "--metadata",
-                str(metadata_path),
-                "--remote-rx-host",
-                args.remote_rx_host,
-                "--remote-repo",
-                args.remote_repo,
-                "--captures-dir",
-                args.captures_dir,
-                "--tag",
-                run_tag,
-                "--rx-device-args",
-                args.rx_device_args,
-                "--tx-device-args",
-                args.tx_device_args,
-                "--rx-time",
-                str(args.rx_time),
-                "--tx-delay",
-                str(args.tx_delay),
-                "--rx-gain",
-                str(args.rx_gain),
-                "--carrier-recovery",
-                args.carrier_recovery,
-                "--costas-bw",
-                str(args.costas_bw),
-                "--tx-gain",
-                str(args.tx_gain),
-                "--tx-scale",
-                str(args.tx_scale),
-                "--run-experiment",
-                "--experiment-detectors",
-                *args.detectors,
-            ]
-            if args.ssh_port is not None:
-                cmd.extend(["--ssh-port", str(args.ssh_port)])
-            for ssh_option in args.ssh_option:
-                cmd.extend(["--ssh-option", ssh_option])
-            if args.tx_time is not None:
-                cmd.extend(["--tx-time", str(args.tx_time)])
-            if args.icl_checkpoint:
-                cmd.extend(["--icl-checkpoint", args.icl_checkpoint])
-            if args.defined_checkpoint:
-                cmd.extend(["--defined-checkpoint", args.defined_checkpoint])
-            if args.keep_remote_capture:
-                cmd.append("--keep-remote-capture")
+            selected_row = None
+            attempt = 1
+            while True:
+                if args.retry_until_lock:
+                    if args.max_lock_attempts > 0 and attempt > args.max_lock_attempts:
+                        break
+                    run_tag = f"{sweep_tag}_{modulation_tag}_k{pilot_symbols:02d}_r{repetition + 1:02d}_a{attempt:02d}"
+                else:
+                    if attempt > 1:
+                        break
+                    run_tag = f"{sweep_tag}_{modulation_tag}_k{pilot_symbols:02d}_r{repetition + 1:02d}"
 
-            print()
-            print("=" * 72)
-            print(f"DISTRIBUTED PILOT SWEEP: k={pilot_symbols} / T={args.total_symbols} / rep={repetition + 1}/{args.repetitions}")
-            print("=" * 72)
-            run = subprocess.run(cmd, cwd=REPO_ROOT, env=local_env(), text=True, capture_output=True)
-            if run.stdout:
-                sys.stdout.write(run.stdout)
-            if run.stderr:
-                sys.stderr.write(run.stderr)
-            if run.returncode != 0:
-                raise RuntimeError(
-                    f"Distributed sweep run failed for k={pilot_symbols}, repetition={repetition + 1}, "
-                    f"exit code {run.returncode}"
+                cmd = [
+                    args.python,
+                    str(SCRIPTS_DIR / "run_distributed_mqam_test.py"),
+                    "--python",
+                    args.python,
+                    "--remote-python",
+                    args.remote_python,
+                    "--remote-conda-env",
+                    args.remote_conda_env,
+                    "--remote-conda-exe",
+                    args.remote_conda_exe,
+                    "--remote-sdr-preflight" if args.remote_sdr_preflight else "--no-remote-sdr-preflight",
+                    "--modulation",
+                    args.modulation,
+                    "--tx-frame",
+                    str(frame_path),
+                    "--metadata",
+                    str(metadata_path),
+                    "--remote-host",
+                    remote_host,
+                    "--remote-role",
+                    args.remote_role,
+                    "--remote-os",
+                    args.remote_os,
+                    "--remote-repo",
+                    args.remote_repo,
+                    "--captures-dir",
+                    args.captures_dir,
+                    "--tag",
+                    run_tag,
+                    "--rx-device-args",
+                    args.rx_device_args,
+                    "--tx-device-args",
+                    args.tx_device_args,
+                    "--rx-time",
+                    str(args.rx_time),
+                    "--tx-delay",
+                    str(args.tx_delay),
+                    "--rx-gain",
+                    str(args.rx_gain),
+                    "--carrier-recovery",
+                    args.carrier_recovery,
+                    "--costas-bw",
+                    str(args.costas_bw),
+                    "--tx-gain",
+                    str(args.tx_gain),
+                    "--tx-scale",
+                    str(args.tx_scale),
+                    "--run-experiment",
+                    "--experiment-detectors",
+                    *args.detectors,
+                ]
+                if args.ssh_port is not None:
+                    cmd.extend(["--ssh-port", str(args.ssh_port)])
+                for ssh_option in args.ssh_option:
+                    cmd.extend(["--ssh-option", ssh_option])
+                if args.tx_time is not None:
+                    cmd.extend(["--tx-time", str(args.tx_time)])
+                if args.icl_checkpoint:
+                    cmd.extend(["--icl-checkpoint", args.icl_checkpoint])
+                if args.defined_checkpoint:
+                    cmd.extend(["--defined-checkpoint", args.defined_checkpoint])
+                if args.keep_remote_capture:
+                    cmd.append("--keep-remote-capture")
+
+                print()
+                print("=" * 72)
+                print(
+                    f"DISTRIBUTED PILOT SWEEP: k={pilot_symbols} / T={args.total_symbols} / "
+                    f"rep={repetition + 1}/{args.repetitions} / attempt={attempt}"
                 )
+                print("=" * 72)
+                run = subprocess.run(cmd, cwd=REPO_ROOT, env=local_env(), text=True, capture_output=True)
+                if run.stdout:
+                    sys.stdout.write(run.stdout)
+                if run.stderr:
+                    sys.stderr.write(run.stderr)
+                if run.returncode != 0:
+                    raise RuntimeError(
+                        f"Distributed sweep run failed for k={pilot_symbols}, repetition={repetition + 1}, "
+                        f"attempt={attempt}, exit code {run.returncode}"
+                    )
+
+                capture_dir = REPO_ROOT / args.captures_dir / run_tag
+                validation_summary = load_json(capture_dir / "mqam_validation.json")
+                experiment_summary = load_json(capture_dir / "receiver_experiment.json")
+                best_phase = validation_summary["best_phase"]
+                lock_score = best_phase["lock_score"]
+                good_lock = bool(lock_score >= args.lock_threshold)
+                attempt_row = {
+                    "pilot_symbols": pilot_symbols,
+                    "repetition": repetition + 1,
+                    "attempt": attempt,
+                    "selected": False,
+                    "total_symbols": args.total_symbols,
+                    "payload_symbols": args.total_symbols - pilot_symbols,
+                    "capture_dir": str(capture_dir),
+                    "lock_score": lock_score,
+                    "good_lock": good_lock,
+                    "included": good_lock if args.exclude_bad_lock else True,
+                    "validation_ber": best_phase["overall_ber"],
+                    "validation_mean_pilot_ber": best_phase["mean_pilot_ber"],
+                    "validation_mean_snr_db": best_phase.get("mean_snr_db"),
+                }
+                for detector_name, detector_result in experiment_summary["detectors"].items():
+                    attempt_row[f"{detector_name}_ber"] = detector_result["overall_ber"]
+                    attempt_row[f"{detector_name}_ser"] = detector_result.get("overall_ser", detector_result["overall_ber"])
+                attempt_rows.append(attempt_row)
+
+                if good_lock:
+                    selected_row = dict(attempt_row)
+                    selected_row["selected"] = True
+                    print(f"Accepted lock_score={lock_score:.4f} on attempt {attempt}.")
+                    break
+
+                print(f"Rejected lock_score={lock_score:.4f} below threshold {args.lock_threshold:.4f}.")
+                if not args.retry_until_lock:
+                    selected_row = dict(attempt_row)
+                    selected_row["selected"] = True
+                    break
+                if args.max_lock_attempts > 0 and attempt >= args.max_lock_attempts:
+                    selected_row = dict(attempt_row)
+                    selected_row["selected"] = True
+                    print(
+                        f"Max attempts reached for k={pilot_symbols}, rep={repetition + 1}; "
+                        "using final bad-lock attempt."
+                    )
+                    break
+                if args.retry_delay > 0:
+                    print(f"Retrying in {args.retry_delay:.1f} s...")
+                    time.sleep(args.retry_delay)
+                attempt += 1
+
+            if selected_row is None:
+                raise RuntimeError(f"No selected run for k={pilot_symbols}, repetition={repetition + 1}.")
+            for row in reversed(attempt_rows):
+                if row["capture_dir"] == selected_row["capture_dir"]:
+                    row["selected"] = True
+                    break
+            repetition_rows.append(selected_row)
+
             if args.inter_run_delay > 0 and repetition + 1 < args.repetitions:
                 print(f"Settling for {args.inter_run_delay:.1f} s before next repetition...")
                 time.sleep(args.inter_run_delay)
 
-            capture_dir = REPO_ROOT / args.captures_dir / run_tag
-            validation_summary = load_json(capture_dir / "mqam_validation.json")
-            experiment_summary = load_json(capture_dir / "receiver_experiment.json")
-            best_phase = validation_summary["best_phase"]
-            lock_score = best_phase["lock_score"]
-            repetition_row = {
-                "pilot_symbols": pilot_symbols,
-                "repetition": repetition + 1,
-                "total_symbols": args.total_symbols,
-                "payload_symbols": args.total_symbols - pilot_symbols,
-                "capture_dir": str(capture_dir),
-                "lock_score": lock_score,
-                "good_lock": bool(lock_score >= args.lock_threshold),
-                "included": bool(lock_score >= args.lock_threshold) if args.exclude_bad_lock else True,
-                "validation_ber": best_phase["overall_ber"],
-                "validation_mean_pilot_ber": best_phase["mean_pilot_ber"],
-                "validation_mean_snr_db": best_phase.get("mean_snr_db"),
-            }
-            for detector_name, detector_result in experiment_summary["detectors"].items():
-                repetition_row[f"{detector_name}_ber"] = detector_result["overall_ber"]
-                repetition_row[f"{detector_name}_ser"] = detector_result.get("overall_ser", detector_result["overall_ber"])
-            repetition_rows.append(repetition_row)
-
         included_rows = [row for row in repetition_rows if row["included"]]
         good_lock_rows = [row for row in repetition_rows if row["good_lock"]]
+        selected_attempts = [row["attempt"] for row in repetition_rows]
         detector_summaries = {}
         for detector_name in args.detectors:
             detector_summaries[detector_name] = {
@@ -239,8 +337,11 @@ def main() -> int:
                 "exclude_bad_lock": args.exclude_bad_lock,
                 "good_lock_runs": int(sum(1 for row in repetition_rows if row["good_lock"])),
                 "included_runs": int(sum(1 for row in repetition_rows if row["included"])),
+                "total_attempts": int(sum(1 for row in attempt_rows if row["pilot_symbols"] == pilot_symbols)),
+                "attempts_per_selected_run": summarize_metric(selected_attempts),
                 "sync_success_rate": float(sum(1 for row in repetition_rows if row["good_lock"]) / len(repetition_rows)),
                 "runs": repetition_rows,
+                "attempts": [row for row in attempt_rows if row["pilot_symbols"] == pilot_symbols],
                 "lock_score": summarize_metric([row["lock_score"] for row in included_rows]),
                 "validation_ber": summarize_metric([row["validation_ber"] for row in included_rows]),
                 "validation_mean_pilot_ber": summarize_metric([row["validation_mean_pilot_ber"] for row in included_rows]),
@@ -256,14 +357,21 @@ def main() -> int:
 
     summary = {
         "mode": "distributed_two_computer",
-        "remote_rx_host": args.remote_rx_host,
+        "remote_host": remote_host,
+        "remote_role": args.remote_role,
+        "remote_os": args.remote_os,
         "remote_repo": args.remote_repo,
+        "remote_conda_env": args.remote_conda_env,
+        "remote_conda_exe": args.remote_conda_exe,
         "modulation": args.modulation,
         "total_symbols": args.total_symbols,
         "pilot_symbols_tested": args.pilot_symbols,
         "detectors": args.detectors,
         "repetitions": args.repetitions,
         "lock_threshold": args.lock_threshold,
+        "retry_until_lock": args.retry_until_lock,
+        "max_lock_attempts": args.max_lock_attempts,
+        "retry_delay": args.retry_delay,
         "exclude_bad_lock": args.exclude_bad_lock,
         "rx_time": args.rx_time,
         "tx_delay": args.tx_delay,
@@ -284,6 +392,9 @@ def main() -> int:
         "repetitions",
         "good_lock_runs",
         "included_runs",
+        "total_attempts",
+        "attempts_per_selected_run_mean",
+        "attempts_per_selected_run_max",
         "sync_success_rate",
         "lock_score_mean",
         "validation_ber_mean",
@@ -308,6 +419,9 @@ def main() -> int:
                 "repetitions": row["repetitions"],
                 "good_lock_runs": row["good_lock_runs"],
                 "included_runs": row["included_runs"],
+                "total_attempts": row["total_attempts"],
+                "attempts_per_selected_run_mean": row["attempts_per_selected_run"]["mean"],
+                "attempts_per_selected_run_max": row["attempts_per_selected_run"]["max"],
                 "sync_success_rate": row["sync_success_rate"],
                 "lock_score_mean": row["lock_score"]["mean"],
                 "validation_ber_mean": row["validation_ber"]["mean"],
@@ -327,6 +441,8 @@ def main() -> int:
     detail_fields = [
         "pilot_symbols",
         "repetition",
+        "attempt",
+        "selected",
         "total_symbols",
         "payload_symbols",
         "lock_score",

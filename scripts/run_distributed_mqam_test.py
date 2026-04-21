@@ -2,15 +2,19 @@
 """
 Run one two-computer PlutoSDR transmit/receive/validate experiment.
 
-This script is intended to be launched on the TX/controller computer. It starts
-the receiver on a remote computer over SSH, transmits locally after a short
-delay, copies the remote capture files back with SCP, and then runs the normal
-local validator and detector experiment.
+Default topology:
+  - launch this script on the RX/controller computer
+  - start the local receiver
+  - SSH to the remote TX computer and transmit from its PlutoSDR
+  - validate the local RX capture
+
+The legacy inverse topology is still available with --remote-role rx.
 """
 
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import shlex
@@ -34,13 +38,38 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--modulation", required=True, choices=["BPSK", "QPSK", "16QAM", "64QAM"])
     parser.add_argument("--tx-frame", required=True)
     parser.add_argument("--metadata", required=True)
-    parser.add_argument("--remote-rx-host", required=True, help="SSH target for the RX computer, e.g. user@rx-host")
+    parser.add_argument("--remote-host", default=None, help="SSH target for the remote computer.")
+    parser.add_argument("--remote-tx-host", default=None, help="Alias for --remote-host when --remote-role tx.")
+    parser.add_argument("--remote-rx-host", default=None, help="Alias for --remote-host when --remote-role rx.")
+    parser.add_argument("--remote-role", choices=["tx", "rx"], default="tx")
+    parser.add_argument(
+        "--remote-os",
+        choices=["windows", "posix"],
+        default="windows",
+        help="Remote shell style. Use windows for OpenSSH into PowerShell/cmd.",
+    )
     parser.add_argument(
         "--remote-repo",
-        default=str(REPO_ROOT),
-        help="Path to this repository on the RX computer. Default assumes identical path on both computers.",
+        default="C:/Users/tpdub/Downloads/Wireless/GH_DEFINED_SDR",
+        help="Path to this repository on the remote computer.",
     )
-    parser.add_argument("--remote-python", default=sys.executable)
+    parser.add_argument("--remote-python", default="python")
+    parser.add_argument(
+        "--remote-conda-env",
+        default="gnuradio",
+        help="Optional conda environment to activate on the remote computer before running TX/RX.",
+    )
+    parser.add_argument(
+        "--remote-conda-exe",
+        default="conda",
+        help="Remote conda executable or full path. Used only with --remote-conda-env.",
+    )
+    parser.add_argument(
+        "--remote-sdr-preflight",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Check remote SoapySDR modules/devices before launching the remote radio process.",
+    )
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--ssh-port", type=int, default=None)
     parser.add_argument("--ssh-option", action="append", default=[], help="Extra SSH/SCP -o option; may be repeated.")
@@ -58,13 +87,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tx-gain", type=float, default=50.0)
     parser.add_argument("--tx-scale", type=float, default=0.2)
     parser.add_argument("--run-experiment", action="store_true")
-    parser.add_argument("--experiment-detectors", nargs="+", default=["mmse", "mmse_df"])
+    parser.add_argument("--experiment-detectors", nargs="+", default=["mmse", "mmse_df", "icl", "defined"])
     parser.add_argument("--experiment-output", default="receiver_experiment.json")
     parser.add_argument("--icl-checkpoint", default=None)
     parser.add_argument("--defined-checkpoint", default=None)
     parser.add_argument("--keep-remote-capture", action="store_true")
-    parser.add_argument("--dry-run", action="store_true", help="Print SSH/TX/SCP commands without running them.")
+    parser.add_argument("--dry-run", action="store_true", help="Print SSH/TX/RX/SCP commands without running them.")
     return parser.parse_args()
+
+
+def resolve_remote_host(args: argparse.Namespace) -> str:
+    host = args.remote_host
+    if args.remote_role == "tx":
+        host = host or args.remote_tx_host
+    else:
+        host = host or args.remote_rx_host
+    if not host:
+        raise ValueError("Provide --remote-host, --remote-tx-host, or --remote-rx-host.")
+    return host
 
 
 def local_env() -> dict[str, str]:
@@ -74,13 +114,13 @@ def local_env() -> dict[str, str]:
     return env
 
 
-def ssh_base(args: argparse.Namespace) -> list[str]:
+def ssh_base(args: argparse.Namespace, remote_host: str) -> list[str]:
     cmd = ["ssh"]
     if args.ssh_port is not None:
         cmd.extend(["-p", str(args.ssh_port)])
     for option in args.ssh_option:
         cmd.extend(["-o", option])
-    cmd.append(args.remote_rx_host)
+    cmd.append(remote_host)
     return cmd
 
 
@@ -93,46 +133,173 @@ def scp_base(args: argparse.Namespace) -> list[str]:
     return cmd
 
 
-def remote_path(remote_repo: str, *parts: str) -> str:
-    return "/".join([remote_repo.rstrip("/"), *[part.strip("/") for part in parts]])
+def normalize_remote_path(path: str, remote_os: str) -> str:
+    if remote_os == "windows":
+        return path.replace("\\", "/")
+    return path
 
 
-def remote_shell_command(args: argparse.Namespace, remote_capture: str, remote_processed: str, remote_raw: str) -> str:
-    repo = args.remote_repo.rstrip("/")
-    rx_script = remote_path(repo, "scripts", "Receive_Signal_MQAM_Headless.py")
-    remote_pythonpath = f"{remote_path(repo, 'src')}:{remote_path(repo, 'scripts')}"
-    rx_cmd = [
-        "env",
-        f"PYTHONPATH={remote_pythonpath}",
-        args.remote_python,
-        rx_script,
-        str(args.rx_time),
-        remote_processed,
-        remote_raw,
-        args.rx_device_args,
-        normalize_modulation(args.modulation),
-        str(args.rx_gain),
-        args.carrier_recovery,
-        str(args.costas_bw),
+def remote_path(remote_os: str, remote_repo: str, *parts: str) -> str:
+    repo = normalize_remote_path(remote_repo, remote_os).rstrip("/\\")
+    sep = "/" if remote_os == "windows" else "/"
+    return sep.join([repo, *[part.strip("/\\") for part in parts]])
+
+
+def ps_quote(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def win_quote(value: str) -> str:
+    return '"' + value.replace('"', r'\"') + '"'
+
+
+def base64_encode(value: str) -> str:
+    return base64.b64encode(value.encode("utf-8")).decode("ascii")
+
+
+def remote_command(args: argparse.Namespace, argv: list[str], remote_cwd: str, remote_capture: str) -> str:
+    remote_cwd = normalize_remote_path(remote_cwd, args.remote_os)
+    remote_capture = normalize_remote_path(remote_capture, args.remote_os)
+    if args.remote_os == "windows":
+        pythonpath = f"{remote_path(args.remote_os, args.remote_repo, 'src')};{remote_path(args.remote_os, args.remote_repo, 'scripts')}"
+        argv_json = json.dumps(argv)
+        argv_json_b64 = base64_encode(argv_json)
+        helper = remote_path(args.remote_os, args.remote_repo, "scripts", "windows_remote_run.ps1")
+        return " ".join(
+            [
+                "powershell.exe",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                win_quote(helper),
+                "-Repo",
+                win_quote(remote_cwd),
+                "-Capture",
+                win_quote(remote_capture),
+                "-CondaExe",
+                win_quote(args.remote_conda_exe),
+                "-CondaEnv",
+                win_quote(args.remote_conda_env or ""),
+                "-PythonPath",
+                win_quote(pythonpath),
+                "-ArgvJsonBase64",
+                win_quote(argv_json_b64),
+            ]
+        )
+
+    pythonpath = f"{remote_path(args.remote_os, args.remote_repo, 'src')}:{remote_path(args.remote_os, args.remote_repo, 'scripts')}"
+    parts = [
+        f"mkdir -p {shlex.quote(remote_capture)}",
+        f"cd {shlex.quote(remote_cwd)}",
     ]
-    return " && ".join(
-        [
-            f"mkdir -p {shlex.quote(remote_capture)}",
-            f"cd {shlex.quote(repo)}",
-            shlex.join(rx_cmd),
-        ]
+    if args.remote_conda_env:
+        parts.extend(
+            [
+                f"eval \"$({shlex.quote(args.remote_conda_exe)} shell.posix hook)\"",
+                f"conda activate {shlex.quote(args.remote_conda_env)}",
+            ]
+        )
+    parts.append(" ".join(["env", shlex.quote(f"PYTHONPATH={pythonpath}"), *[shlex.quote(item) for item in argv]]))
+    return " && ".join(parts)
+
+
+def windows_simple_command(command: str) -> str:
+    encoded = base64.b64encode(command.encode("utf-16le")).decode("ascii")
+    return f"powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand {encoded}"
+
+
+def ensure_remote_windows_helpers(args: argparse.Namespace, remote_host: str, remote_capture: str) -> None:
+    if args.remote_os != "windows":
+        return
+    remote_scripts = remote_path(args.remote_os, args.remote_repo, "scripts")
+    mkdir_cmd = windows_simple_command(
+        f"New-Item -ItemType Directory -Force -Path {ps_quote(remote_scripts)} | Out-Null; "
+        f"New-Item -ItemType Directory -Force -Path {ps_quote(normalize_remote_path(remote_capture, args.remote_os))} | Out-Null"
     )
+    run_checked([*ssh_base(args, remote_host), mkdir_cmd], cwd=REPO_ROOT)
+
+    helper_files = [
+        SCRIPTS_DIR / "windows_remote_run.ps1",
+        SCRIPTS_DIR / "remote_soapy_preflight.py",
+    ]
+    for helper in helper_files:
+        remote_helper = remote_path(args.remote_os, remote_scripts, helper.name)
+        run_checked([*scp_base(args), str(helper), scp_remote_spec(remote_host, remote_helper, args.remote_os)], cwd=REPO_ROOT)
+
+
+def remote_cleanup_command(args: argparse.Namespace, remote_capture: str) -> str:
+    remote_capture = normalize_remote_path(remote_capture, args.remote_os)
+    if args.remote_os == "windows":
+        ps = f"Remove-Item -LiteralPath {ps_quote(remote_capture)} -Recurse -Force -ErrorAction SilentlyContinue"
+        encoded = base64.b64encode(ps.encode("utf-16le")).decode("ascii")
+        return f"powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand {encoded}"
+    return f"rm -rf {shlex.quote(remote_capture)}"
+
+
+def scp_remote_spec(remote_host: str, remote_file: str, remote_os: str) -> str:
+    return f"{remote_host}:{normalize_remote_path(remote_file, remote_os)}"
 
 
 def run_checked(cmd: list[str], cwd: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(cmd, cwd=cwd, env=env, text=True, capture_output=True)
     if result.stdout:
         sys.stdout.write(result.stdout)
-    if result.stderr:
-        sys.stderr.write(result.stderr)
+    write_stderr(result.stderr)
     if result.returncode != 0:
         raise RuntimeError(f"Command failed with code {result.returncode}: {shlex.join(cmd)}")
     return result
+
+
+def clean_powershell_clixml(text: str) -> str:
+    if not text:
+        return ""
+    if "#< CLIXML" not in text and "<Objs Version=" not in text:
+        return text
+    if 'S="Error"' in text:
+        return text
+    lines = [
+        line
+        for line in text.splitlines()
+        if "#< CLIXML" not in line
+        and "<Objs Version=" not in line
+        and "Preparing modules for first use." not in line
+    ]
+    return "\n".join(lines).strip()
+
+
+def write_stderr(text: str | None) -> None:
+    cleaned = clean_powershell_clixml(text or "")
+    if cleaned:
+        sys.stderr.write(cleaned)
+        if not cleaned.endswith("\n"):
+            sys.stderr.write("\n")
+
+
+def remote_soapy_preflight_argv(args: argparse.Namespace, device_args: str, direction: str) -> list[str]:
+    return [
+        args.remote_python,
+        remote_path(args.remote_os, args.remote_repo, "scripts", "remote_soapy_preflight.py"),
+        "--device-args",
+        device_args,
+        "--direction",
+        direction,
+    ]
+
+
+def run_remote_preflight(
+    args: argparse.Namespace,
+    remote_host: str,
+    remote_capture: str,
+    device_args: str,
+    direction: str,
+) -> None:
+    if not args.remote_sdr_preflight:
+        return
+    print(f"Running remote {direction} SoapySDR preflight...")
+    argv = remote_soapy_preflight_argv(args, device_args, direction)
+    cmd = [*ssh_base(args, remote_host), remote_command(args, argv, args.remote_repo, remote_capture)]
+    run_checked(cmd, cwd=REPO_ROOT)
 
 
 def copy_payloads_into_capture(metadata_path: Path, capture_dir: Path, metadata_copy: Path, tx_bits_root: Path) -> None:
@@ -152,8 +319,61 @@ def copy_payloads_into_capture(metadata_path: Path, capture_dir: Path, metadata_
     metadata_copy.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
 
+def run_validation_and_experiment(
+    args: argparse.Namespace,
+    capture_dir: Path,
+    local_processed: Path,
+    tx_frame_copy: Path,
+    metadata_copy: Path,
+) -> str | None:
+    validate_cmd = [
+        args.python,
+        str(SCRIPTS_DIR / "qpsk_validate_from_post_costas.py"),
+        "--capture-dir",
+        str(capture_dir),
+        "--post-costas-file",
+        local_processed.name,
+        "--tx-frame",
+        tx_frame_copy.name,
+        "--metadata",
+        metadata_copy.name,
+        "--output-prefix",
+        args.validator_prefix,
+    ]
+    print("\nRunning pilot-based validation...")
+    run_checked(validate_cmd, cwd=REPO_ROOT, env=local_env())
+
+    if not args.run_experiment:
+        return None
+
+    experiment_cmd = [
+        args.python,
+        str(SCRIPTS_DIR / "receiver_experiment.py"),
+        "--capture-dir",
+        str(capture_dir),
+        "--post-costas-file",
+        local_processed.name,
+        "--tx-frame",
+        tx_frame_copy.name,
+        "--metadata",
+        metadata_copy.name,
+        "--output",
+        args.experiment_output,
+        "--detectors",
+        *args.experiment_detectors,
+    ]
+    if args.icl_checkpoint:
+        experiment_cmd.extend(["--icl-checkpoint", args.icl_checkpoint])
+    if args.defined_checkpoint:
+        experiment_cmd.extend(["--defined-checkpoint", args.defined_checkpoint])
+    print("\nRunning modular detector experiment...")
+    run_checked(experiment_cmd, cwd=REPO_ROOT, env=local_env())
+    return str(capture_dir / args.experiment_output)
+
+
 def main() -> int:
     args = parse_args()
+    remote_host = resolve_remote_host(args)
     modulation = normalize_modulation(args.modulation)
     modulation_tag = modulation.lower()
     if modulation in {"16QAM", "64QAM"} and args.carrier_recovery == "costas":
@@ -177,35 +397,24 @@ def main() -> int:
     metadata_copy = capture_dir / "frame_metadata.json"
     local_processed = capture_dir / f"received_processed_{modulation_tag}.bin"
     local_raw = capture_dir / f"received_iq_raw_{modulation_tag}.bin"
-    remote_capture = remote_path(args.remote_repo, args.captures_dir, tag)
-    remote_processed = remote_path(remote_capture, local_processed.name)
-    remote_raw = remote_path(remote_capture, local_raw.name)
+    remote_capture = remote_path(args.remote_os, args.remote_repo, args.captures_dir, tag)
+    remote_tx_frame = remote_path(args.remote_os, remote_capture, "transmitted_frame.bin")
+    remote_processed = remote_path(args.remote_os, remote_capture, local_processed.name)
+    remote_raw = remote_path(args.remote_os, remote_capture, local_raw.name)
 
     shutil.copy2(tx_frame, tx_frame_copy)
     copy_payloads_into_capture(metadata, capture_dir, metadata_copy, REPO_ROOT)
 
-    remote_cmd = remote_shell_command(args, remote_capture, remote_processed, remote_raw)
-    ssh_cmd = [*ssh_base(args), remote_cmd]
-    tx_cmd = [
-        args.python,
-        str(SCRIPTS_DIR / "Send_Signal_MQAM_Headless.py"),
-        str(tx_frame_copy),
-        modulation,
-        str(tx_time),
-        "true",
-        args.tx_device_args,
-        str(args.tx_gain),
-        str(args.tx_scale),
-    ]
-    scp_processed = [*scp_base(args), f"{args.remote_rx_host}:{shlex.quote(remote_processed)}", str(local_processed)]
-    scp_raw = [*scp_base(args), f"{args.remote_rx_host}:{shlex.quote(remote_raw)}", str(local_raw)]
-
     print("=" * 72)
     print(f"{modulation} DISTRIBUTED SDR TEST")
     print("=" * 72)
+    print(f"Topology:          remote {args.remote_role.upper()}, local {'RX' if args.remote_role == 'tx' else 'TX'}")
     print(f"Local capture dir: {capture_dir}")
-    print(f"Remote RX host:    {args.remote_rx_host}")
+    print(f"Remote host:       {remote_host}")
+    print(f"Remote OS:         {args.remote_os}")
     print(f"Remote repo:       {args.remote_repo}")
+    if args.remote_conda_env:
+        print(f"Remote conda env:  {args.remote_conda_env}")
     print(f"Remote capture:    {remote_capture}")
     print(f"RX runtime:        {args.rx_time:.1f} s")
     print(f"TX delay:          {args.tx_delay:.1f} s")
@@ -213,92 +422,179 @@ def main() -> int:
     print(f"RX device:         {args.rx_device_args}")
     print(f"TX device:         {args.tx_device_args}")
     print(f"Carrier recovery:  {args.carrier_recovery}")
+    print(f"Detectors:         {' '.join(args.experiment_detectors)}")
     print()
 
-    if args.dry_run:
-        print("SSH RX command:")
-        print(shlex.join(ssh_cmd))
-        print("\nLocal TX command:")
-        print(shlex.join(tx_cmd))
-        print("\nSCP commands:")
-        print(shlex.join(scp_processed))
-        print(shlex.join(scp_raw))
-        return 0
+    remote_mkdir = remote_command(args, [args.remote_python, "-c", "print('remote ready')"], args.remote_repo, remote_capture)
 
-    receiver = subprocess.Popen(ssh_cmd, cwd=REPO_ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    print(f"Remote receiver SSH PID: {receiver.pid}")
-    time.sleep(args.tx_delay)
-
-    print("Starting local transmitter...")
-    tx_result = subprocess.run(tx_cmd, cwd=REPO_ROOT, env=local_env(), text=True, capture_output=True)
-    if tx_result.stdout:
-        sys.stdout.write(tx_result.stdout)
-    if tx_result.stderr:
-        sys.stderr.write(tx_result.stderr)
-
-    rx_stdout, _ = receiver.communicate()
-    if rx_stdout:
-        for line in rx_stdout.splitlines():
-            print(f"[REMOTE_RX] {line}")
-    if receiver.returncode != 0:
-        raise RuntimeError(f"Remote receiver exited with code {receiver.returncode}")
-    if tx_result.returncode != 0:
-        raise RuntimeError(f"Local transmitter exited with code {tx_result.returncode}")
-
-    print("Copying remote receiver artifacts back to controller...")
-    run_checked(scp_processed, cwd=REPO_ROOT)
-    run_checked(scp_raw, cwd=REPO_ROOT)
-
-    validate_cmd = [
-        args.python,
-        str(SCRIPTS_DIR / "qpsk_validate_from_post_costas.py"),
-        "--capture-dir",
-        str(capture_dir),
-        "--post-costas-file",
-        local_processed.name,
-        "--tx-frame",
-        tx_frame_copy.name,
-        "--metadata",
-        metadata_copy.name,
-        "--output-prefix",
-        args.validator_prefix,
-    ]
-    print("\nRunning pilot-based validation...")
-    run_checked(validate_cmd, cwd=REPO_ROOT, env=local_env())
-
-    experiment_summary_path = None
-    if args.run_experiment:
-        experiment_cmd = [
+    if args.remote_role == "tx":
+        rx_cmd = [
             args.python,
-            str(SCRIPTS_DIR / "receiver_experiment.py"),
-            "--capture-dir",
-            str(capture_dir),
-            "--post-costas-file",
-            local_processed.name,
-            "--tx-frame",
-            tx_frame_copy.name,
-            "--metadata",
-            metadata_copy.name,
-            "--output",
-            args.experiment_output,
-            "--detectors",
-            *args.experiment_detectors,
+            str(SCRIPTS_DIR / "Receive_Signal_MQAM_Headless.py"),
+            str(args.rx_time),
+            str(local_processed),
+            str(local_raw),
+            args.rx_device_args,
+            modulation,
+            str(args.rx_gain),
+            args.carrier_recovery,
+            str(args.costas_bw),
         ]
-        if args.icl_checkpoint:
-            experiment_cmd.extend(["--icl-checkpoint", args.icl_checkpoint])
-        if args.defined_checkpoint:
-            experiment_cmd.extend(["--defined-checkpoint", args.defined_checkpoint])
-        print("\nRunning modular detector experiment...")
-        run_checked(experiment_cmd, cwd=REPO_ROOT, env=local_env())
-        experiment_summary_path = str(capture_dir / args.experiment_output)
+        remote_tx_argv = [
+            args.remote_python,
+            remote_path(args.remote_os, args.remote_repo, "scripts", "Send_Signal_MQAM_Headless.py"),
+            remote_tx_frame,
+            modulation,
+            str(tx_time),
+            "true",
+            args.tx_device_args,
+            str(args.tx_gain),
+            str(args.tx_scale),
+        ]
+        ssh_tx_cmd = [*ssh_base(args, remote_host), remote_command(args, remote_tx_argv, args.remote_repo, remote_capture)]
+        scp_frame_cmd = [*scp_base(args), str(tx_frame_copy), scp_remote_spec(remote_host, remote_tx_frame, args.remote_os)]
+
+        if args.dry_run:
+            if args.remote_os == "windows":
+                print("Remote helper bootstrap:")
+                print("  creates remote scripts/capture directories and uploads windows_remote_run.ps1 + remote_soapy_preflight.py")
+                print()
+            print("Remote setup command:")
+            print(shlex.join([*ssh_base(args, remote_host), remote_mkdir]))
+            if args.remote_sdr_preflight:
+                print("\nRemote TX SoapySDR preflight command:")
+                preflight_cmd = [
+                    *ssh_base(args, remote_host),
+                    remote_command(
+                        args,
+                        remote_soapy_preflight_argv(args, args.tx_device_args, "TX"),
+                        args.remote_repo,
+                        remote_capture,
+                    ),
+                ]
+                print(shlex.join(preflight_cmd))
+            print("\nSCP frame-to-TX command:")
+            print(shlex.join(scp_frame_cmd))
+            print("\nLocal RX command:")
+            print(shlex.join(rx_cmd))
+            print("\nRemote TX command:")
+            print(shlex.join(ssh_tx_cmd))
+            return 0
+
+        ensure_remote_windows_helpers(args, remote_host, remote_capture)
+        run_checked([*ssh_base(args, remote_host), remote_mkdir], cwd=REPO_ROOT)
+        run_remote_preflight(args, remote_host, remote_capture, args.tx_device_args, "TX")
+        run_checked(scp_frame_cmd, cwd=REPO_ROOT)
+
+        receiver = subprocess.Popen(rx_cmd, cwd=REPO_ROOT, env=local_env(), text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        print(f"Local receiver PID: {receiver.pid}")
+        time.sleep(args.tx_delay)
+
+        print("Starting remote transmitter...")
+        tx_result = subprocess.run(ssh_tx_cmd, cwd=REPO_ROOT, text=True, capture_output=True)
+        if tx_result.stdout:
+            for line in tx_result.stdout.splitlines():
+                print(f"[REMOTE_TX] {line}")
+        write_stderr(tx_result.stderr)
+
+        rx_stdout, _ = receiver.communicate()
+        if rx_stdout:
+            for line in rx_stdout.splitlines():
+                print(f"[LOCAL_RX] {line}")
+        if receiver.returncode != 0:
+            raise RuntimeError(f"Local receiver exited with code {receiver.returncode}")
+        if tx_result.returncode != 0:
+            raise RuntimeError(f"Remote transmitter exited with code {tx_result.returncode}")
+
+    else:
+        remote_rx_argv = [
+            args.remote_python,
+            remote_path(args.remote_os, args.remote_repo, "scripts", "Receive_Signal_MQAM_Headless.py"),
+            str(args.rx_time),
+            remote_processed,
+            remote_raw,
+            args.rx_device_args,
+            modulation,
+            str(args.rx_gain),
+            args.carrier_recovery,
+            str(args.costas_bw),
+        ]
+        ssh_rx_cmd = [*ssh_base(args, remote_host), remote_command(args, remote_rx_argv, args.remote_repo, remote_capture)]
+        tx_cmd = [
+            args.python,
+            str(SCRIPTS_DIR / "Send_Signal_MQAM_Headless.py"),
+            str(tx_frame_copy),
+            modulation,
+            str(tx_time),
+            "true",
+            args.tx_device_args,
+            str(args.tx_gain),
+            str(args.tx_scale),
+        ]
+        scp_processed = [*scp_base(args), scp_remote_spec(remote_host, remote_processed, args.remote_os), str(local_processed)]
+        scp_raw = [*scp_base(args), scp_remote_spec(remote_host, remote_raw, args.remote_os), str(local_raw)]
+
+        if args.dry_run:
+            if args.remote_os == "windows":
+                print("Remote helper bootstrap:")
+                print("  creates remote scripts/capture directories and uploads windows_remote_run.ps1 + remote_soapy_preflight.py")
+                print()
+            print("Remote RX command:")
+            print(shlex.join(ssh_rx_cmd))
+            if args.remote_sdr_preflight:
+                print("\nRemote RX SoapySDR preflight command:")
+                preflight_cmd = [
+                    *ssh_base(args, remote_host),
+                    remote_command(
+                        args,
+                        remote_soapy_preflight_argv(args, args.rx_device_args, "RX"),
+                        args.remote_repo,
+                        remote_capture,
+                    ),
+                ]
+                print(shlex.join(preflight_cmd))
+            print("\nLocal TX command:")
+            print(shlex.join(tx_cmd))
+            print("\nSCP commands:")
+            print(shlex.join(scp_processed))
+            print(shlex.join(scp_raw))
+            return 0
+
+        ensure_remote_windows_helpers(args, remote_host, remote_capture)
+        run_remote_preflight(args, remote_host, remote_capture, args.rx_device_args, "RX")
+        receiver = subprocess.Popen(ssh_rx_cmd, cwd=REPO_ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        print(f"Remote receiver SSH PID: {receiver.pid}")
+        time.sleep(args.tx_delay)
+        print("Starting local transmitter...")
+        tx_result = subprocess.run(tx_cmd, cwd=REPO_ROOT, env=local_env(), text=True, capture_output=True)
+        if tx_result.stdout:
+            sys.stdout.write(tx_result.stdout)
+        write_stderr(tx_result.stderr)
+
+        rx_stdout, _ = receiver.communicate()
+        if rx_stdout:
+            for line in rx_stdout.splitlines():
+                print(f"[REMOTE_RX] {line}")
+        if receiver.returncode != 0:
+            raise RuntimeError(f"Remote receiver exited with code {receiver.returncode}")
+        if tx_result.returncode != 0:
+            raise RuntimeError(f"Local transmitter exited with code {tx_result.returncode}")
+
+        print("Copying remote receiver artifacts back to controller...")
+        run_checked(scp_processed, cwd=REPO_ROOT)
+        run_checked(scp_raw, cwd=REPO_ROOT)
+
+    experiment_summary_path = run_validation_and_experiment(args, capture_dir, local_processed, tx_frame_copy, metadata_copy)
 
     if not args.keep_remote_capture:
-        cleanup_cmd = [*ssh_base(args), f"rm -rf {shlex.quote(remote_capture)}"]
+        cleanup_cmd = [*ssh_base(args, remote_host), remote_cleanup_command(args, remote_capture)]
         run_checked(cleanup_cmd, cwd=REPO_ROOT)
 
     run_summary = {
         "capture_dir": str(capture_dir),
-        "remote_rx_host": args.remote_rx_host,
+        "remote_host": remote_host,
+        "remote_role": args.remote_role,
+        "remote_os": args.remote_os,
         "remote_repo": args.remote_repo,
         "remote_capture": remote_capture,
         "modulation": modulation,

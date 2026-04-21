@@ -122,7 +122,7 @@ The SDR scripts are included for completeness:
 
 They require GNU Radio, SoapySDR, and PlutoSDR drivers. The plotting and offline AWGN pipelines do not require SDR hardware.
 
-For two-computer tests where one machine controls TX and another machine hosts RX, see:
+For two-computer tests where the controller hosts RX and a Windows SSH target hosts TX, see:
 
 ```text
 docs/DISTRIBUTED_TWO_COMPUTER_PIPELINE.md

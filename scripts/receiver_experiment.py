@@ -16,6 +16,7 @@ import importlib
 import json
 import os
 import sys
+import warnings
 from pathlib import Path
 
 
@@ -34,7 +35,9 @@ def _argv_requests_torch_backend(argv: list[str]) -> bool:
 if _argv_requests_torch_backend(sys.argv):
     # This environment's torch build can crash if NumPy is imported first.
     # Import torch before any project module that imports NumPy.
-    import torch  # noqa: F401
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="Failed to initialize NumPy:.*")
+        import torch  # noqa: F401
 
 import numpy as np
 
