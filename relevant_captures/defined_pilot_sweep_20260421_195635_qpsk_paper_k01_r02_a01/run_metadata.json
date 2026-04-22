@@ -1,0 +1,26 @@
+{
+  "capture_dir": "/Users/tpdubya/Downloads/WIRELESS/DEFINED-SDR copy/GH_DEFINED_SDR/captures/defined_pilot_sweep_20260421_195635_qpsk_paper_k01_r02_a01",
+  "modulation": "QPSK",
+  "tx_frame": "/Users/tpdubya/Downloads/WIRELESS/DEFINED-SDR copy/GH_DEFINED_SDR/captures/defined_pilot_sweep_20260421_195635_qpsk_paper_k01_r02_a01/transmitted_frame.bin",
+  "metadata": "/Users/tpdubya/Downloads/WIRELESS/DEFINED-SDR copy/GH_DEFINED_SDR/captures/defined_pilot_sweep_20260421_195635_qpsk_paper_k01_r02_a01/frame_metadata.json",
+  "rx_processed": "/Users/tpdubya/Downloads/WIRELESS/DEFINED-SDR copy/GH_DEFINED_SDR/captures/defined_pilot_sweep_20260421_195635_qpsk_paper_k01_r02_a01/received_processed_qpsk.bin",
+  "rx_raw_iq": "/Users/tpdubya/Downloads/WIRELESS/DEFINED-SDR copy/GH_DEFINED_SDR/captures/defined_pilot_sweep_20260421_195635_qpsk_paper_k01_r02_a01/received_iq_raw_qpsk.bin",
+  "rx_time_s": 6.0,
+  "tx_delay_s": 1.5,
+  "tx_time_s": 3.5,
+  "rx_gain": 40.0,
+  "carrier_recovery": "costas",
+  "costas_bw": 0.001,
+  "tx_gain": 50.0,
+  "payload_tx_gain": 35.0,
+  "tx_scale": 0.2,
+  "run_experiment": true,
+  "experiment_detectors": [
+    "mmse",
+    "mmse_df",
+    "icl",
+    "defined"
+  ],
+  "validator_summary": "/Users/tpdubya/Downloads/WIRELESS/DEFINED-SDR copy/GH_DEFINED_SDR/captures/defined_pilot_sweep_20260421_195635_qpsk_paper_k01_r02_a01/mqam_validation.json",
+  "experiment_summary": "/Users/tpdubya/Downloads/WIRELESS/DEFINED-SDR copy/GH_DEFINED_SDR/captures/defined_pilot_sweep_20260421_195635_qpsk_paper_k01_r02_a01/receiver_experiment.json"
+}

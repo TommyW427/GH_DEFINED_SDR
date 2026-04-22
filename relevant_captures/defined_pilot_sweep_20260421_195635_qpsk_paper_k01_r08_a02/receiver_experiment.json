@@ -1,0 +1,107 @@
+{
+  "capture_dir": "/Users/tpdubya/Downloads/WIRELESS/DEFINED-SDR copy/GH_DEFINED_SDR/captures/defined_pilot_sweep_20260421_195635_qpsk_paper_k01_r08_a02",
+  "post_costas_file": "/Users/tpdubya/Downloads/WIRELESS/DEFINED-SDR copy/GH_DEFINED_SDR/captures/defined_pilot_sweep_20260421_195635_qpsk_paper_k01_r08_a02/received_processed_qpsk.bin",
+  "phase_selection": {
+    "best_phase": 12,
+    "frame_start": 59519,
+    "pilot_start": 67838,
+    "lock_score": 0.8074236512184143,
+    "payload_cycle_offset": 0,
+    "mean_pilot_ber": 0.0,
+    "overall_ber": 0.0
+  },
+  "detectors": {
+    "mmse": {
+      "overall_ber": 0.0,
+      "total_errors": 0,
+      "total_bits": 60,
+      "overall_ser": 0.0,
+      "total_symbol_errors": 0,
+      "total_symbols": 30,
+      "payload_results": [
+        {
+          "payload_index": 0,
+          "expected_payload_index": 0,
+          "ber": 0.0,
+          "bit_errors": 0,
+          "bits": 60,
+          "ser": 0.0,
+          "symbol_errors": 0,
+          "symbols": 30,
+          "pilot_score": 1.0000001192092896,
+          "pilot_ber": 0.0,
+          "pilot_drift": 0
+        }
+      ]
+    },
+    "mmse_df": {
+      "overall_ber": 0.0,
+      "total_errors": 0,
+      "total_bits": 60,
+      "overall_ser": 0.0,
+      "total_symbol_errors": 0,
+      "total_symbols": 30,
+      "payload_results": [
+        {
+          "payload_index": 0,
+          "expected_payload_index": 0,
+          "ber": 0.0,
+          "bit_errors": 0,
+          "bits": 60,
+          "ser": 0.0,
+          "symbol_errors": 0,
+          "symbols": 30,
+          "pilot_score": 1.0000001192092896,
+          "pilot_ber": 0.0,
+          "pilot_drift": 0
+        }
+      ]
+    },
+    "icl": {
+      "overall_ber": 0.05,
+      "total_errors": 3,
+      "total_bits": 60,
+      "overall_ser": 0.1,
+      "total_symbol_errors": 3,
+      "total_symbols": 30,
+      "payload_results": [
+        {
+          "payload_index": 0,
+          "expected_payload_index": 0,
+          "ber": 0.05,
+          "bit_errors": 3,
+          "bits": 60,
+          "ser": 0.1,
+          "symbol_errors": 3,
+          "symbols": 30,
+          "pilot_score": 1.0000001192092896,
+          "pilot_ber": 0.0,
+          "pilot_drift": 0
+        }
+      ]
+    },
+    "defined": {
+      "overall_ber": 0.3,
+      "total_errors": 18,
+      "total_bits": 60,
+      "overall_ser": 0.5,
+      "total_symbol_errors": 15,
+      "total_symbols": 30,
+      "payload_results": [
+        {
+          "payload_index": 0,
+          "expected_payload_index": 0,
+          "ber": 0.3,
+          "bit_errors": 18,
+          "bits": 60,
+          "ser": 0.5,
+          "symbol_errors": 15,
+          "symbols": 30,
+          "pilot_score": 1.0000001192092896,
+          "pilot_ber": 0.0,
+          "pilot_drift": 0
+        }
+      ]
+    }
+  }
+}
