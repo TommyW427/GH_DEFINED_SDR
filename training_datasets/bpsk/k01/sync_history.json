@@ -1,0 +1,37 @@
+{
+  "sync_events": [
+    {
+      "event_type": "initial_sync",
+      "trial_index": 0,
+      "timestamp": 1776822172.609324,
+      "frame_start": 75647,
+      "optimal_phase": 15,
+      "pilot_correlation": 1.0000001192092896,
+      "snr_db": 5.892993804005654,
+      "sync_confidence": 0.9319881796836853,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/bpsk_k01_001"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 1,
+      "timestamp": 1777161751.2004123,
+      "frame_start": 146560,
+      "optimal_phase": 19,
+      "pilot_correlation": 1.0,
+      "snr_db": 5.855178001603196,
+      "sync_confidence": 0.9232074022293091,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/bpsk_k01_002"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 2,
+      "timestamp": 1777162292.6753824,
+      "frame_start": 183680,
+      "optimal_phase": 16,
+      "pilot_correlation": 1.0,
+      "snr_db": 7.128791794126462,
+      "sync_confidence": 0.9621698260307312,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/bpsk_k01_000"
+    }
+  ]
+}

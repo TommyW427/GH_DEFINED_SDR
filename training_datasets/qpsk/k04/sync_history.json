@@ -1,0 +1,15 @@
+{
+  "sync_events": [
+    {
+      "event_type": "initial_sync",
+      "trial_index": 0,
+      "timestamp": 1776816634.1656647,
+      "frame_start": 128768,
+      "optimal_phase": 0,
+      "pilot_correlation": 0.990458071231842,
+      "snr_db": 7.9638781901097495,
+      "sync_confidence": 0.9948919415473938,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k04_000"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "modulation": "BPSK",
+  "pilot_count": 1,
+  "total_trials": 3,
+  "valid_trials": 3,
+  "failed_trials": 0,
+  "collection_duration_seconds": 0.0,
+  "trials_per_second": null,
+  "source": "validated_captures",
+  "sync_events": {
+    "initial_sync_count": 3,
+    "resync_count": 0,
+    "mean_payloads_per_sync": 1.0,
+    "sync_reuse_rate": 0.0
+  },
+  "metrics_summary": {
+    "ber": {
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "median": 0.0
+    },
+    "snr_db": {
+      "mean": 6.292321681976318,
+      "std": 0.5916755199432373,
+      "min": 5.855177879333496,
+      "max": 7.128791809082031,
+      "median": 5.892993927001953
+    },
+    "evm": {
+      "mean": 0.4857076108455658,
+      "std": 0.0322556346654892,
+      "min": 0.44010916352272034,
+      "max": 0.5096137523651123,
+      "median": 0.5073999166488647
+    },
+    "pilot_correlation": {
+      "mean": 1.0,
+      "std": 6.882551417675131e-08,
+      "min": 1.0,
+      "max": 1.0000001192092896,
+      "median": 1.0
+    }
+  },
+  "channel_statistics": {
+    "magnitude": {
+      "mean": 0.698645293712616,
+      "std": 0.11947259306907654,
+      "min": 0.6078465580940247,
+      "max": 0.867443323135376,
+      "median": 0.6206458210945129
+    },
+    "phase_deg": {
+      "mean": 57.48289489746094,
+      "std": 23.769100189208984,
+      "min": 38.62672424316406,
+      "max": 91.01054382324219,
+      "median": 42.811424255371094
+    }
+  },
+  "source_captures": [
+    "bpsk_k01_001",
+    "bpsk_k01_002",
+    "bpsk_k01_000"
+  ]
+}

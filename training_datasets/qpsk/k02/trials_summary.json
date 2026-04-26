@@ -1,0 +1,77 @@
+{
+  "modulation": "QPSK",
+  "pilot_count": 2,
+  "total_trials": 13,
+  "valid_trials": 13,
+  "failed_trials": 0,
+  "collection_duration_seconds": 0.0,
+  "trials_per_second": null,
+  "source": "validated_captures",
+  "sync_events": {
+    "initial_sync_count": 13,
+    "resync_count": 0,
+    "mean_payloads_per_sync": 1.0,
+    "sync_reuse_rate": 0.0
+  },
+  "metrics_summary": {
+    "ber": {
+      "mean": 0.02122015878558159,
+      "std": 0.036514319479465485,
+      "min": 0.0,
+      "max": 0.13793103396892548,
+      "median": 0.0
+    },
+    "snr_db": {
+      "mean": 7.371478080749512,
+      "std": 1.1708593368530273,
+      "min": 5.529349327087402,
+      "max": 9.689471244812012,
+      "median": 7.179041385650635
+    },
+    "evm": {
+      "mean": 0.44086742401123047,
+      "std": 0.07109390944242477,
+      "min": 0.3277377486228943,
+      "max": 0.5935373306274414,
+      "median": 0.43757036328315735
+    },
+    "pilot_correlation": {
+      "mean": 0.9672091007232666,
+      "std": 0.02571241557598114,
+      "min": 0.9028657078742981,
+      "max": 0.9970937967300415,
+      "median": 0.9745984673500061
+    }
+  },
+  "channel_statistics": {
+    "magnitude": {
+      "mean": 0.30370408296585083,
+      "std": 0.22979779541492462,
+      "min": 0.09511442482471466,
+      "max": 0.7508602142333984,
+      "median": 0.21135370433330536
+    },
+    "phase_deg": {
+      "mean": -7.0392608642578125,
+      "std": 61.07123947143555,
+      "min": -150.3935089111328,
+      "max": 156.37474060058594,
+      "median": -6.270083427429199
+    }
+  },
+  "source_captures": [
+    "qpsk_k02_000",
+    "qpsk_k02_005",
+    "qpsk_k02_006",
+    "qpsk_k02_008",
+    "qpsk_k02_007",
+    "qpsk_k02_011",
+    "qpsk_k02_001",
+    "qpsk_k02_003",
+    "qpsk_k02_002",
+    "qpsk_k02_004",
+    "qpsk_k02_010",
+    "qpsk_k02_009",
+    "qpsk_k02_012"
+  ]
+}

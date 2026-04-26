@@ -1,0 +1,191 @@
+{
+  "sync_events": [
+    {
+      "event_type": "initial_sync",
+      "trial_index": 0,
+      "timestamp": 1776813457.5309951,
+      "frame_start": 126763,
+      "optimal_phase": 6,
+      "pilot_correlation": 1.0000001192092896,
+      "snr_db": 5.3356799893011395,
+      "sync_confidence": 0.9961812496185303,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_001"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 1,
+      "timestamp": 1776814015.7034209,
+      "frame_start": 90197,
+      "optimal_phase": 9,
+      "pilot_correlation": 1.0000001192092896,
+      "snr_db": 8.316056434576689,
+      "sync_confidence": 0.9925244450569153,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_005"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 2,
+      "timestamp": 1776814085.7446077,
+      "frame_start": 189312,
+      "optimal_phase": 17,
+      "pilot_correlation": 1.0000001192092896,
+      "snr_db": 5.392343235801247,
+      "sync_confidence": 0.9929807782173157,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_004"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 3,
+      "timestamp": 1776814109.5812442,
+      "frame_start": 115073,
+      "optimal_phase": 15,
+      "pilot_correlation": 1.0,
+      "snr_db": 5.167816982484313,
+      "sync_confidence": 0.9894731640815735,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_009"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 4,
+      "timestamp": 1776814132.9312017,
+      "frame_start": 79871,
+      "optimal_phase": 9,
+      "pilot_correlation": 1.0000001192092896,
+      "snr_db": 5.047525066599182,
+      "sync_confidence": 0.9762772917747498,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_013"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 5,
+      "timestamp": 1776814156.4138334,
+      "frame_start": 113663,
+      "optimal_phase": 21,
+      "pilot_correlation": 1.000000238418579,
+      "snr_db": 5.582910373892842,
+      "sync_confidence": 0.9902938604354858,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_008"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 6,
+      "timestamp": 1776814179.2343318,
+      "frame_start": 102655,
+      "optimal_phase": 8,
+      "pilot_correlation": 1.0000001192092896,
+      "snr_db": 7.10305765745797,
+      "sync_confidence": 0.9909776449203491,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_007"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 7,
+      "timestamp": 1776814203.8494098,
+      "frame_start": 116481,
+      "optimal_phase": 19,
+      "pilot_correlation": 1.0000001192092896,
+      "snr_db": 5.4085736714840325,
+      "sync_confidence": 0.9845209121704102,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_012"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 8,
+      "timestamp": 1776814250.32749,
+      "frame_start": 99841,
+      "optimal_phase": 23,
+      "pilot_correlation": 1.0,
+      "snr_db": 6.158146437923207,
+      "sync_confidence": 0.9886412024497986,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_011"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 9,
+      "timestamp": 1776815861.4385002,
+      "frame_start": 136647,
+      "optimal_phase": 13,
+      "pilot_correlation": 1.0,
+      "snr_db": 6.25784670687731,
+      "sync_confidence": 0.9889605641365051,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_010"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 10,
+      "timestamp": 1776815978.8980277,
+      "frame_start": 125255,
+      "optimal_phase": 24,
+      "pilot_correlation": 1.0000001192092896,
+      "snr_db": 6.939785221053877,
+      "sync_confidence": 0.9947242736816406,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_002"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 11,
+      "timestamp": 1776816093.5004158,
+      "frame_start": 65535,
+      "optimal_phase": 7,
+      "pilot_correlation": 1.0,
+      "snr_db": 5.253177535466435,
+      "sync_confidence": 0.991733193397522,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_006"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 12,
+      "timestamp": 1776816205.4074523,
+      "frame_start": 168405,
+      "optimal_phase": 21,
+      "pilot_correlation": 1.0000001192092896,
+      "snr_db": 9.658756488754388,
+      "sync_confidence": 0.996636152267456,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_000"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 13,
+      "timestamp": 1776816227.3059533,
+      "frame_start": 187136,
+      "optimal_phase": 24,
+      "pilot_correlation": 1.0000001192092896,
+      "snr_db": 5.513040476188288,
+      "sync_confidence": 0.993506908416748,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_003"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 14,
+      "timestamp": 1776816250.0716307,
+      "frame_start": 134019,
+      "optimal_phase": 0,
+      "pilot_correlation": 1.0,
+      "snr_db": 6.19938799502782,
+      "sync_confidence": 0.9651004672050476,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_015"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 15,
+      "timestamp": 1777163802.990821,
+      "frame_start": 114560,
+      "optimal_phase": 9,
+      "pilot_correlation": 1.0,
+      "snr_db": 8.250398280196315,
+      "sync_confidence": 0.9538711905479431,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_016"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 16,
+      "timestamp": 1777164109.0318258,
+      "frame_start": 92229,
+      "optimal_phase": 9,
+      "pilot_correlation": 1.0000001192092896,
+      "snr_db": 6.622639652434474,
+      "sync_confidence": 0.971426784992218,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k01_014"
+    }
+  ]
+}

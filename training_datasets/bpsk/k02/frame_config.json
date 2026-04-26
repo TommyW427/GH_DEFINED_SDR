@@ -1,0 +1,31 @@
+{
+  "modulation": "BPSK",
+  "bits_per_symbol": 1,
+  "preamble_symbols": 6000,
+  "sync_preamble_symbols": 6000,
+  "sfd_symbols": 0,
+  "sync_tail_symbols": 64,
+  "sync_mode": "legacy",
+  "sync_repeats": 2,
+  "pilot_symbols": 2,
+  "data_symbols": 29,
+  "paper_total_symbols": 31,
+  "paper_payload_symbols": 29,
+  "paper_pilot_symbols": 2,
+  "preamble_bits": 6000,
+  "sync_preamble_bits": 6000,
+  "sfd_bits": 0,
+  "pilot_bits": 2,
+  "data_bits": 29,
+  "num_payloads": 1,
+  "payload_files": [
+    "/Users/tpdubya/Downloads/WIRELESS/DEFINED-SDR copy/GH_DEFINED_SDR/payloads_bpsk/defined_paper_payload_k02.bin"
+  ],
+  "frame_length_bits": 6031,
+  "frame_length_symbols": 6031,
+  "symbol_rate": 40000,
+  "frame_duration_ms": 150.775,
+  "paper_frame_duration_ms": 0.775,
+  "note": "DEFINED paper-style frame: SDR sync preamble/SFD acquisition layer followed by one block of k pilots and T-k data symbols",
+  "total_symbols": 31
+}

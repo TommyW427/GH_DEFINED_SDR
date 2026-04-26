@@ -1,0 +1,147 @@
+{
+  "sync_events": [
+    {
+      "event_type": "initial_sync",
+      "trial_index": 0,
+      "timestamp": 1776812949.021088,
+      "frame_start": 125824,
+      "optimal_phase": 21,
+      "pilot_correlation": 0.9028657078742981,
+      "snr_db": 6.444659813165703,
+      "sync_confidence": 0.9977782368659973,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k02_000"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 1,
+      "timestamp": 1776814274.3108091,
+      "frame_start": 81536,
+      "optimal_phase": 17,
+      "pilot_correlation": 0.9773377180099487,
+      "snr_db": 7.065290693391648,
+      "sync_confidence": 0.9927074313163757,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k02_005"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 2,
+      "timestamp": 1776814297.3717186,
+      "frame_start": 119893,
+      "optimal_phase": 21,
+      "pilot_correlation": 0.9866034388542175,
+      "snr_db": 9.68947159680652,
+      "sync_confidence": 0.9923691749572754,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k02_006"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 3,
+      "timestamp": 1776814318.3050587,
+      "frame_start": 67713,
+      "optimal_phase": 17,
+      "pilot_correlation": 0.9555962681770325,
+      "snr_db": 6.4036131099167815,
+      "sync_confidence": 0.9857711791992188,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k02_008"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 4,
+      "timestamp": 1776814432.351501,
+      "frame_start": 131712,
+      "optimal_phase": 1,
+      "pilot_correlation": 0.9265550374984741,
+      "snr_db": 6.951878044032316,
+      "sync_confidence": 0.9919469356536865,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k02_007"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 5,
+      "timestamp": 1776814452.8604624,
+      "frame_start": 94976,
+      "optimal_phase": 24,
+      "pilot_correlation": 0.9812451004981995,
+      "snr_db": 8.153118058205157,
+      "sync_confidence": 0.9383450746536255,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k02_011"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 6,
+      "timestamp": 1776816456.264982,
+      "frame_start": 192768,
+      "optimal_phase": 9,
+      "pilot_correlation": 0.9855058789253235,
+      "snr_db": 7.179041157926261,
+      "sync_confidence": 0.9963541626930237,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k02_001"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 7,
+      "timestamp": 1776816500.269053,
+      "frame_start": 113323,
+      "optimal_phase": 19,
+      "pilot_correlation": 0.9571781754493713,
+      "snr_db": 8.39599895520732,
+      "sync_confidence": 0.996005654335022,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k02_003"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 8,
+      "timestamp": 1776816522.879765,
+      "frame_start": 91349,
+      "optimal_phase": 4,
+      "pilot_correlation": 0.9723047018051147,
+      "snr_db": 8.779588442276976,
+      "sync_confidence": 0.9962396621704102,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k02_002"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 9,
+      "timestamp": 1776816611.8974574,
+      "frame_start": 85760,
+      "optimal_phase": 24,
+      "pilot_correlation": 0.9745984673500061,
+      "snr_db": 8.232428660689756,
+      "sync_confidence": 0.9943016767501831,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k02_004"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 10,
+      "timestamp": 1777164152.5617394,
+      "frame_start": 61044,
+      "optimal_phase": 21,
+      "pilot_correlation": 0.9970937967300415,
+      "snr_db": 5.775246397675279,
+      "sync_confidence": 0.9386839866638184,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k02_010"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 11,
+      "timestamp": 1777164196.1941512,
+      "frame_start": 78848,
+      "optimal_phase": 3,
+      "pilot_correlation": 0.965552568435669,
+      "snr_db": 7.229533088515577,
+      "sync_confidence": 0.9414763450622559,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k02_009"
+    },
+    {
+      "event_type": "initial_sync",
+      "trial_index": 12,
+      "timestamp": 1777164418.4632285,
+      "frame_start": 80383,
+      "optimal_phase": 2,
+      "pilot_correlation": 0.9912808537483215,
+      "snr_db": 5.529349370966733,
+      "sync_confidence": 0.9102677702903748,
+      "source_capture_dir": "/tmp/defined_snr_5_10_captures/qpsk_k02_012"
+    }
+  ]
+}

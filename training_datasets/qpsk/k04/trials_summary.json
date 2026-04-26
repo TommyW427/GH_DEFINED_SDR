@@ -1,0 +1,65 @@
+{
+  "modulation": "QPSK",
+  "pilot_count": 4,
+  "total_trials": 1,
+  "valid_trials": 1,
+  "failed_trials": 0,
+  "collection_duration_seconds": 0.0,
+  "trials_per_second": null,
+  "source": "validated_captures",
+  "sync_events": {
+    "initial_sync_count": 1,
+    "resync_count": 0,
+    "mean_payloads_per_sync": 1.0,
+    "sync_reuse_rate": 0.0
+  },
+  "metrics_summary": {
+    "ber": {
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "median": 0.0
+    },
+    "snr_db": {
+      "mean": 7.963878154754639,
+      "std": 0.0,
+      "min": 7.963878154754639,
+      "max": 7.963878154754639,
+      "median": 7.963878154754639
+    },
+    "evm": {
+      "mean": 0.3997662365436554,
+      "std": 0.0,
+      "min": 0.3997662365436554,
+      "max": 0.3997662365436554,
+      "median": 0.3997662365436554
+    },
+    "pilot_correlation": {
+      "mean": 0.990458071231842,
+      "std": 0.0,
+      "min": 0.990458071231842,
+      "max": 0.990458071231842,
+      "median": 0.990458071231842
+    }
+  },
+  "channel_statistics": {
+    "magnitude": {
+      "mean": 0.18524043262004852,
+      "std": 0.0,
+      "min": 0.18524043262004852,
+      "max": 0.18524043262004852,
+      "median": 0.18524043262004852
+    },
+    "phase_deg": {
+      "mean": -8.882940292358398,
+      "std": 0.0,
+      "min": -8.882940292358398,
+      "max": -8.882940292358398,
+      "median": -8.882940292358398
+    }
+  },
+  "source_captures": [
+    "qpsk_k04_000"
+  ]
+}
